@@ -4481,8 +4481,8 @@ Rigidbody2D:
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
   m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
+  m_LinearDamping: 2.5
+  m_AngularDamping: 0.2
   m_GravityScale: 0
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -4568,6 +4568,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 075589c9e16b8744a9f0a0ce27f5c6e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  accleration: 20
+  steering: 10
+  maxSpeed: 100
+  driftFactor: 0.95
 --- !u!1 &1573778681
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,14 +1,17 @@
-using UnityEngine;
 /*
 public class mytest : MonoBehaviour
 {
     [SerializeField] float turnSpeed = 100f;
     [SerializeField] float moveSpeed = 15f;
-    [SerializeField] float maxSpeed = 300f;
+    [SerializeField] float maxSpeed = 25f;
+    public float brakePower = 2f;  
+    public float acceleration = 5f;
     [SerializeField] float slowSpeedRatio = 0.5f;
     [SerializeField] float boostSpeedRatio = 1.5f;
     [SerializeField] float brakeDeceleration = 5f; // [브레이크 기능 추가] 브레이크 감속 속도
 
+    public float brakePower = 2f;  
+    public float acceleration = 5f;
     float slowSpeed;
     float boostSpeed;
     float currentSpeed;

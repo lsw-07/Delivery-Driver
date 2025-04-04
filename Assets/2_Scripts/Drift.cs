@@ -23,8 +23,8 @@ public class Drift : MonoBehaviour
             rb.AddForce(transform.up * Input.GetAxis("Vertical") * accleration);
         }
 
-        float turnAmount = Input.GetAxis("Horizontal") * steering * speed * Time.fixedDeltaTime;
-        //float turnAmount = Input.GetAxis("Horizontal") * steering * Mathf.Clamp(speed / maxSpeed, 0.4f, 1f);
+        //float turnAmount = Input.GetAxis("Horizontal") * steering * speed * Time.fixedDeltaTime;
+        float turnAmount = Input.GetAxis("Horizontal") * steering * Mathf.Clamp(speed / maxSpeed, 0.4f, 1f);
         rb.MoveRotation(rb.rotation - turnAmount);
 
        //Drift
