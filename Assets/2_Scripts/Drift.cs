@@ -2,93 +2,71 @@ using UnityEngine;
 
 public class Drift : MonoBehaviour
 {
-    [SerializeField] float accleration = 20f;  //전진/후진 가속도
-    [SerializeField] float steering = 10f;    //조향속도
-    [SerializeField] float maxSpeed = 100f;   //최대 속도 제한
-    [SerializeField] float driftFactor = 0.95f; //낮을수록 더 미끄러짐
+    [Header("전진/후진 가속도")] public float acceleration = 1000f;
+    [Header("조향 속도")] public float steering = 3f;
+    [Header("낮을수록 더 미끄러짐")] public float driftFactor = 0.95f;
+    [Header("최대 속고 제한")] public float maxSpeed = 1000f;
 
-    [SerializeField] float slowAcclerationRatio = 0.5f;
-    [SerializeField] float booostAcclerationRatio = 1.5f;
+    public ParticleSystem smokeLeft;
+    public ParticleSystem smokeRight;
 
-    [SerializeField] ParticleSystem smokeLeft;
-    [SerializeField] ParticleSystem smokeRight;
-    [SerializeField] TrailRenderer leftTrail;
-    [SerializeField] TrailRenderer rightTrail;
+    public float driftThreshold = 1.5f;
 
-    Rigidbody2D rb;
-    AudioSource audioSource;
-
-    float defaultAcceleration;
-    float slowAcceleration;
-    float boostAcceleration;
-
-    public object ResestAcceleration { get; private set; }
+    private Rigidbody2D rb;
+    private AudioSource audioSource;
+    public TrailRenderer leftTrail;
+    public TrailRenderer rightTrail;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        audioSource = rb.GetComponent<AudioSource>();
-    }
-    private void FixedUpdate()
-    {
+        audioSource = GetComponent<AudioSource>();
     }
 
-    private void Update()
+    void FixedUpdate()
     {
-        float sidewayVelocity = Vector2.Dot(rb.linearVelocity, transform.right);
+        float speed = Vector2.Dot(rb.linearVelocity, transform.up);
+        if (speed < maxSpeed)
+        {
+            rb.AddForce(transform.up * Input.GetAxis("Vertical") * acceleration);
+        }
 
-        bool isDrifting = rb.linearVelocity.magnitude > 2f && Mathf.Abs(sidewayVelocity) > 1f;
+        //float turnAmount = lnput.GetAxis("Hor izontal") * steering * speed * TIme.fixeDeltaTIme;
+        float turnAmount = Input.GetAxis("Horizontal") * steering * Mathf.Clamp(speed / maxSpeed, 0.4f, 1f);
+        rb.MoveRotation(rb.rotation - turnAmount);
+
+        ApplyDrift();
+    }
+    void ApplyDrift()
+    {
+        Vector2 forvardVelocity = transform.up * Vector2.Dot(rb.linearVelocity, transform.up);
+        Vector2 sideVelocity = transform.right * Vector2.Dot(rb.linearVelocity, transform.right);
+
+        rb.linearVelocity = forvardVelocity + sideVelocity * driftFactor;
+    }
+
+    void Update()
+    {
+        float sidevaysVelocity = Vector2.Dot(rb.linearVelocity, transform.right);
+
+        bool isDrifting = Mathf.Abs(sidevaysVelocity) > driftThreshold && rb.linearVelocity.magnitude > 2f;
+
         if (isDrifting)
         {
-            if (audioSource.isPlaying) audioSource.Play();
+            if (!audioSource.isPlaying) audioSource.Play();
             if (!smokeLeft.isPlaying) smokeLeft.Play();
             if (!smokeRight.isPlaying) smokeRight.Play();
         }
         else
         {
-            if (audioSource.isPlaying) audioSource.Stop();
+            if (audioSource.isPlaying) audioSource.Play();
             if (smokeLeft.isPlaying) smokeLeft.Stop();
             if (smokeRight.isPlaying) smokeRight.Stop();
         }
+
+        audioSource.volume = Mathf.Lerp(audioSource.volume, isDrifting ? 1f : 0f, Time.deltaTime * 5f);
         leftTrail.emitting = isDrifting;
         rightTrail.emitting = isDrifting;
-
-
-        float speed = Vector2.Dot(rb.linearVelocity, transform.up);
-        if (speed < maxSpeed)
-        {
-            rb.AddForce(transform.up * Input.GetAxis("Vertical") * accleration);
-        }
-
-        float turnAmount = Input.GetAxis("Horizontal") * steering * speed * Time.fixedDeltaTime;
-        // turnAmount = Input.GetAxis("Horizontal") * steering * Mathf.Clamp(speed / maxSpeed, 0.4f, 1f);
-        rb.MoveRotation(rb.rotation - turnAmount);
-
-        //Drift
-        Vector2 forwardVelocity = transform.up * Vector2.Dot(rb.linearVelocity, transform.up);
-        Vector2 sideVelocity = transform.right * Vector2.Dot(rb.linearVelocity, transform.right);
-
-        rb.linearVelocity = forwardVelocity + sideVelocity * driftFactor;
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.gameObject.CompareTag("Boost"))
-        {
-            accleration = boostAcceleration;
-            Debug.Log("Boost!!!!");
-
-            Invoke(nameof(ResetAcceleration), 5f);
-        }
-    }
-    void ResetAcceleration()
-    {
-        accleration = defaultAcceleration;
-    }
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        accleration = slowAcceleration;
-
-        Invoke(nameof(ResetAcceleration), 3f);
-    }
 }
