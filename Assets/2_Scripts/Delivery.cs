@@ -5,7 +5,7 @@ public class Delivery : MonoBehaviour
     [SerializeField] float delay = 0.3f;
     [SerializeField] Color noChickenColor = new Color(1, 1, 1, 1);
     [SerializeField] Color hasChickenColor = new Color(0, 1, 0, 0.5f);
-    [SerializeField] GameObject[] barrierObjects; // 여러 개의 배리어를 배열로 선언!
+    [SerializeField] GameObject[] barrierObjects ; // 여러 개의 배리어를 배열로 선언!
 
     bool hasChicken = false;
     SpriteRenderer spriteRenderer;
