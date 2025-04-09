@@ -2,20 +2,22 @@ using UnityEngine;
 
 public class Drift : MonoBehaviour
 {
-    [Header("ÀüÁø/ÈÄÁø °¡¼Óµµ")] public float acceleration = 1000f;
-    [Header("Á¶Çâ ¼Óµµ")] public float steering = 3f;
-    [Header("³·À»¼ö·Ï ´õ ¹Ì²ô·¯Áü")] public float driftFactor = 0.95f;
-    [Header("ÃÖ´ë ¼Ó°í Á¦ÇÑ")] public float maxSpeed = 1000f;
+    [Header("ì „ì§„/í›„ì§„ ê°€ì†ë„")] public float acceleration = 10f;
+    [Header("ì¡°í–¥ ì†ë„")] public float steering = 3f;
+    [Header("ë‚®ì„ìˆ˜ë¡ ë” ë¯¸ë„ëŸ¬ì§")] public float driftFactor = 0.95f;
+    [Header("ìµœëŒ€ ì†ë„ ì œí•œ")] public float maxSpeed = 1000f;
 
     public ParticleSystem smokeLeft;
     public ParticleSystem smokeRight;
-
     public float driftThreshold = 1.5f;
 
     private Rigidbody2D rb;
     private AudioSource audioSource;
     public TrailRenderer leftTrail;
     public TrailRenderer rightTrail;
+
+    private bool isBraking = false;
+    private bool isStoppedByBrake = false;
 
     void Start()
     {
@@ -25,48 +27,89 @@ public class Drift : MonoBehaviour
 
     void FixedUpdate()
     {
-        float speed = Vector2.Dot(rb.linearVelocity, transform.up);
-        if (speed < maxSpeed)
-        {
-            rb.AddForce(transform.up * Input.GetAxis("Vertical") * acceleration);
-        }
+        isBraking = Input.GetKey(KeyCode.Space);
 
-        //float turnAmount = lnput.GetAxis("Hor izontal") * steering * speed * TIme.fixeDeltaTIme;
-        float turnAmount = Input.GetAxis("Horizontal") * steering * Mathf.Clamp(speed / maxSpeed, 0.4f, 1f);
-        rb.MoveRotation(rb.rotation - turnAmount);
+        if (isBraking)
+        {
+            ApplyBrake();
+        }
+        else
+        {
+            if (isStoppedByBrake)
+            {
+                // ë¸Œë ˆì´í¬ë¡œ ë©ˆì·„ìœ¼ë©´ ìŠ¤í˜ì´ìŠ¤ë°” ë—„ ë•Œê¹Œì§€ ëŒ€ê¸°
+                if (!Input.GetKey(KeyCode.Space))
+                {
+                    isStoppedByBrake = false;
+                }
+            }
+            else
+            {
+                float speed = Vector2.Dot(rb.linearVelocity, transform.up);
+                if (Mathf.Abs(speed) < maxSpeed)
+                {
+                    rb.AddForce(transform.up * Input.GetAxis("Vertical") * acceleration);
+                }
+
+                float turnAmount = Input.GetAxis("Horizontal") * steering * Mathf.Clamp(speed / maxSpeed, 0.4f, 1f);
+                rb.MoveRotation(rb.rotation - turnAmount);
+            }
+        }
 
         ApplyDrift();
     }
+
+    void ApplyBrake()
+    {
+        float brakeForce = 0.05f; // ê°ì† ê³„ìˆ˜
+        Vector2 brakeVelocity = rb.linearVelocity * brakeForce;
+
+        rb.linearVelocity -= brakeVelocity;
+
+        if (rb.linearVelocity.magnitude < 0.1f)
+        {
+            rb.linearVelocity = Vector2.zero;
+            isStoppedByBrake = true;
+        }
+    }
+
     void ApplyDrift()
     {
-        Vector2 forvardVelocity = transform.up * Vector2.Dot(rb.linearVelocity, transform.up);
+        // ë¸Œë ˆì´í¬ ì¤‘ì¼ ë•Œ ë“œë¦¬í”„íŠ¸ ë” ê°•í•˜ê²Œ
+        float currentDriftFactor = isBraking ? driftFactor * 0.85f : driftFactor;
+
+        Vector2 forwardVelocity = transform.up * Vector2.Dot(rb.linearVelocity, transform.up);
         Vector2 sideVelocity = transform.right * Vector2.Dot(rb.linearVelocity, transform.right);
 
-        rb.linearVelocity = forvardVelocity + sideVelocity * driftFactor;
+        rb.linearVelocity = forwardVelocity + sideVelocity * currentDriftFactor;
     }
 
     void Update()
     {
-        float sidevaysVelocity = Vector2.Dot(rb.linearVelocity, transform.right);
+        float sidewaysVelocity = Vector2.Dot(rb.linearVelocity, transform.right);
+        bool isDrifting = Mathf.Abs(sidewaysVelocity) > driftThreshold && rb.linearVelocity.magnitude > 2f;
 
-        bool isDrifting = Mathf.Abs(sidevaysVelocity) > driftThreshold && rb.linearVelocity.magnitude > 2f;
-
-        if (isDrifting)
+        if (isDrifting || isBraking)
         {
             if (!audioSource.isPlaying) audioSource.Play();
             if (!smokeLeft.isPlaying) smokeLeft.Play();
             if (!smokeRight.isPlaying) smokeRight.Play();
+
+            // ë¸Œë ˆì´í¬ ì‹œ íŒŒí‹°í´ ê°•í™”
+            var emissionLeft = smokeLeft.emission;
+            var emissionRight = smokeRight.emission;
+            emissionLeft.rateOverTime = isBraking ? 50f : 20f;
+            emissionRight.rateOverTime = isBraking ? 50f : 20f;
         }
         else
         {
-            if (audioSource.isPlaying) audioSource.Play();
+            if (audioSource.isPlaying) audioSource.Stop();
             if (smokeLeft.isPlaying) smokeLeft.Stop();
             if (smokeRight.isPlaying) smokeRight.Stop();
         }
 
-        audioSource.volume = Mathf.Lerp(audioSource.volume, isDrifting ? 1f : 0f, Time.deltaTime * 5f);
-        leftTrail.emitting = isDrifting;
-        rightTrail.emitting = isDrifting;
+        audioSource.volume = Mathf.Lerp(audioSource.volume, isDrifting || isBraking ? 1f : 0f, Time.deltaTime * 5f);
+        leftTrail.emitting = isDrifting || isBraking;
+        rightTrail.emitting = isDrifting || isBraking;
     }
-
 }
