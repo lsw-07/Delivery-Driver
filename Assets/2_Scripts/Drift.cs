@@ -2,10 +2,10 @@ using UnityEngine;
 
 public class Drift : MonoBehaviour
 {
-    [Header("전진/후진 가속도")] public float acceleration = 10f;
-    [Header("조향 속도")] public float steering = 3f;
-    [Header("낮을수록 더 미끄러짐")] public float driftFactor = 0.95f;
-    [Header("최대 속도 제한")] public float maxSpeed = 1000f;
+    [Header("전진/후진 가속도")] public float acceleration = 85f;
+    [Header("조향 속도")] public float steering = 5f;
+    [Header("낮을수록 더 미끄러짐")] public float driftFactor = 0.85f;
+    [Header("최대 속도 제한")] public float maxSpeed = 500f;
 
     public ParticleSystem smokeLeft;
     public ParticleSystem smokeRight;
@@ -19,6 +19,8 @@ public class Drift : MonoBehaviour
     private bool isBraking = false;
     private bool isStoppedByBrake = false;
 
+    private bool isDriftMode = false; // 드리프트 모드 추가
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -28,6 +30,7 @@ public class Drift : MonoBehaviour
     void FixedUpdate()
     {
         isBraking = Input.GetKey(KeyCode.Space);
+        isDriftMode = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift); // Shift 키 드리프트 모드
 
         if (isBraking)
         {
@@ -37,7 +40,6 @@ public class Drift : MonoBehaviour
         {
             if (isStoppedByBrake)
             {
-                // 브레이크로 멈췄으면 스페이스바 뗄 때까지 대기
                 if (!Input.GetKey(KeyCode.Space))
                 {
                     isStoppedByBrake = false;
@@ -52,6 +54,12 @@ public class Drift : MonoBehaviour
                 }
 
                 float turnAmount = Input.GetAxis("Horizontal") * steering * Mathf.Clamp(speed / maxSpeed, 0.4f, 1f);
+
+                if (isDriftMode)
+                {
+                    turnAmount *= 2f; // 드리프트 모드 시 조향 강화
+                }
+
                 rb.MoveRotation(rb.rotation - turnAmount);
             }
         }
@@ -61,7 +69,7 @@ public class Drift : MonoBehaviour
 
     void ApplyBrake()
     {
-        float brakeForce = 0.05f; // 감속 계수
+        float brakeForce = 0.05f;
         Vector2 brakeVelocity = rb.linearVelocity * brakeForce;
 
         rb.linearVelocity -= brakeVelocity;
@@ -75,8 +83,17 @@ public class Drift : MonoBehaviour
 
     void ApplyDrift()
     {
-        // 브레이크 중일 때 드리프트 더 강하게
-        float currentDriftFactor = isBraking ? driftFactor * 0.85f : driftFactor;
+        float currentDriftFactor = driftFactor;
+
+        if (isBraking)
+        {
+            currentDriftFactor *= 0.85f;
+        }
+
+        if (isDriftMode)
+        {
+            currentDriftFactor *= 0.8f; // 드리프트 모드 시 더 미끄러지게
+        }
 
         Vector2 forwardVelocity = transform.up * Vector2.Dot(rb.linearVelocity, transform.up);
         Vector2 sideVelocity = transform.right * Vector2.Dot(rb.linearVelocity, transform.right);
@@ -89,17 +106,16 @@ public class Drift : MonoBehaviour
         float sidewaysVelocity = Vector2.Dot(rb.linearVelocity, transform.right);
         bool isDrifting = Mathf.Abs(sidewaysVelocity) > driftThreshold && rb.linearVelocity.magnitude > 2f;
 
-        if (isDrifting || isBraking)
+        if (isDrifting || isBraking || isDriftMode)
         {
             if (!audioSource.isPlaying) audioSource.Play();
             if (!smokeLeft.isPlaying) smokeLeft.Play();
             if (!smokeRight.isPlaying) smokeRight.Play();
 
-            // 브레이크 시 파티클 강화
             var emissionLeft = smokeLeft.emission;
             var emissionRight = smokeRight.emission;
-            emissionLeft.rateOverTime = isBraking ? 50f : 20f;
-            emissionRight.rateOverTime = isBraking ? 50f : 20f;
+            emissionLeft.rateOverTime = isBraking || isDriftMode ? 50f : 20f;
+            emissionRight.rateOverTime = isBraking || isDriftMode ? 50f : 20f;
         }
         else
         {
@@ -108,8 +124,8 @@ public class Drift : MonoBehaviour
             if (smokeRight.isPlaying) smokeRight.Stop();
         }
 
-        audioSource.volume = Mathf.Lerp(audioSource.volume, isDrifting || isBraking ? 1f : 0f, Time.deltaTime * 5f);
-        leftTrail.emitting = isDrifting || isBraking;
-        rightTrail.emitting = isDrifting || isBraking;
+        audioSource.volume = Mathf.Lerp(audioSource.volume, isDrifting || isBraking || isDriftMode ? 1f : 0f, Time.deltaTime * 5f);
+        leftTrail.emitting = isDrifting || isBraking || isDriftMode;
+        rightTrail.emitting = isDrifting || isBraking || isDriftMode;
     }
 }
