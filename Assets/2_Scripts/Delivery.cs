@@ -13,6 +13,16 @@ public class Delivery : MonoBehaviour
     private void Start()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+        // 자동으로 "Barrier" 태그를 가진 모든 오브젝트를 찾아서 barrierObjects 배열에 저장
+        GameObject[] foundBarriers = GameObject.FindGameObjectsWithTag("Barrier");
+        if (foundBarriers.Length > 0)
+        {
+            barrierObjects = foundBarriers;
+        }
+        else
+        {
+            Debug.LogWarning("Barrier 태그를 가진 오브젝트를 찾지 못했습니다!");
+        }
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -22,7 +32,6 @@ public class Delivery : MonoBehaviour
             Debug.Log("치킨 획득!");
             hasChicken = true;
             spriteRenderer.color = hasChickenColor;
-            Destroy(collision.gameObject, delay);
             Destroy(collision.gameObject, delay);
         }
 
@@ -43,7 +52,6 @@ public class Delivery : MonoBehaviour
             }
         }
     }
-
     public bool HasDelivered()
     {
         return !hasChicken;
