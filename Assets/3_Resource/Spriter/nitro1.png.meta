@@ -147,7 +147,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      nitro1_0: -6024056588089274124
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
